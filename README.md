@@ -68,44 +68,62 @@ docker run -d --name exa-gateway -p 8123:8123 \
   exa-gateway
 ```
 
-## Hermes integration
+## All-in-one Hermes plugin (no container needed)
 
-Hermes uses a companion provider plugin (`hermes-plugin/web/exa-gateway` in this repo) that calls this gateway over HTTP instead of the Exa SDK, so the gateway actually gets used.
+The repo ships **two Hermes plugins** — together they make the gateway
+fully in-process: no separate container or server required.
 
-### Install the Hermes plugin
+### 1. Web provider — `hermes-plugin/web/exa-gw`
+
+Round-robins across keys **inside the Hermes gateway process** and calls
+Exa directly. Keys are read from `keys.json` next to the provider.
 
 ```bash
-# copy the plugin into your Hermes home
-cp -r hermes-plugin/web/exa-gateway ~/.hermes/plugins/web/exa-gateway
-
-# enable it
-hermes plugins enable web/exa-gateway
-
-# configure
+cp -r hermes-plugin/web/exa-gw ~/.hermes/plugins/web/exa-gw
+hermes plugins enable web/exa-gw
 hermes config set web.backend exa-gateway
 hermes config set web.extract_backend exa-gateway
 ```
 
+### 2. Dashboard tab — `hermes-plugin/exa-gateway`
+
+Adds an **"Exa Gateway" tab** to the Hermes dashboard: paste API keys,
+remove them, and watch per-account usage (requests / errors). Keys and
+stats are shared with the provider via `keys.json` + `stats.json`.
+
 ```bash
-# in ~/.hermes/.env
-EXA_GATEWAY_URL=http://<gateway-host>:8123
+cp -r hermes-plugin/exa-gateway ~/.hermes/plugins/exa-gateway
+hermes plugins enable exa-gateway
+# restart dashboard; tab appears under Plugins
 ```
 
-Restart the gateway (or start a new session) for the provider to take effect.
+### Key files
+
+| File | Written by | Read by |
+|---|---|---|
+| `~/.hermes/plugins/web/exa-gw/keys.json` | dashboard (add/remove key) | provider (round-robin) |
+| `~/.hermes/plugins/web/exa-gw/stats.json` | provider (per request) | dashboard (display) |
 
 ### Repo layout
 
 ```
 exa-gateway/
-├── main.py                    # FastAPI gateway server (round-robin)
+├── main.py                    # (standalone server — optional if you want a
+│                              #  container instead of the in-process plugin)
 ├── Dockerfile
 ├── requirements.txt
 └── hermes-plugin/
-    └── web/
-        └── exa-gateway/       # Hermes WebSearchProvider plugin
-            ├── plugin.yaml
-            ├── provider.py
-            └── __init__.py
+    ├── web/
+    │   └── exa-gw/            # WebSearchProvider (in-process round-robin)
+    │       ├── plugin.yaml
+    │       ├── provider.py
+    │       └── __init__.py
+    └── exa-gateway/           # Dashboard tab (keys + stats)
+        ├── plugin.yaml
+        └── dashboard/
+            ├── manifest.json
+            ├── plugin_api.py
+            └── dist/index.js
 ```
 
 ## Notes
