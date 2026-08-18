@@ -79,13 +79,17 @@ server required.
 ├── plugin.yaml          # kind: backend + provides_web_providers
 ├── __init__.py          # register() → register_web_search_provider
 ├── provider.py          # WebSearchProvider (in-process round-robin)
-├── keys.json            # API keys (created at runtime, mode 600)
-├── stats.json           # usage stats (created at runtime)
+├── db.py                # shared SQLite storage (keys + stats)
+├── exa_gateway.db       # SQLite database (created at runtime)
 └── dashboard/           # "Exa Gateway" tab (keys + stats UI)
     ├── manifest.json
     ├── plugin_api.py
     └── dist/index.js
 ```
+
+Storage is **SQLite** (`exa_gateway.db`) — atomic writes, built-in locking,
+safe when the gateway process (provider) and dashboard process both touch
+it. Keys and stats are shared between them via the same db.
 
 ### Install
 
@@ -106,12 +110,9 @@ hermes config set web.extract_backend exa-gateway
 ### Usage
 
 1. Open the Hermes dashboard → **Exa Gateway** tab.
-2. Paste one or more Exa API keys → they land in `keys.json`.
+2. Paste one or more Exa API keys → they land in the SQLite db.
 3. Search/extract now round-robins across the keys automatically.
 4. The tab shows per-account requests / errors live.
-
-Keys and stats are shared between provider and dashboard via
-`keys.json` + `stats.json` (same plugin directory).
 
 ### Standalone server (optional)
 

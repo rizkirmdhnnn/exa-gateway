@@ -1,59 +1,31 @@
 """Exa multi-account gateway web search provider.
 
-Round-robins across N Exa API keys stored in keys.json (managed via the
-Exa Gateway dashboard tab). Both search and extract call Exa directly
-with the selected key — no external server, no dashboard dependency.
+Round-robins across N Exa API keys stored in SQLite (exa_gateway.db).
+Both search and extract call Exa directly with the selected key — no
+external server, no dashboard dependency.
 
-Keys file: ~/.hermes/plugins/web/exa-gw/keys.json
-Dashboard: ~/.hermes/plugins/exa-gateway/dashboard/ (reads same file)
+Keys + stats live in the shared SQLite db (see db.py), managed from the
+Exa Gateway dashboard tab.
 """
 from __future__ import annotations
 
-import json
 import logging
-import os
-import time
-from pathlib import Path
 from typing import Any, Dict, List
 
 from agent.web_search_provider import WebSearchProvider
 
+from . import db
+
 logger = logging.getLogger(__name__)
 
 EXA_BASE = "https://api.exa.ai"
-KEYS_FILE = Path(__file__).resolve().parent / "keys.json"
-STATS_FILE = Path(__file__).resolve().parent / "stats.json"
 RR_INDEX = 0
-STATS: dict = {}
-
-
-def _load_keys() -> list[dict]:
-    if not KEYS_FILE.exists():
-        return []
-    try:
-        return json.loads(KEYS_FILE.read_text())
-    except Exception:
-        return []
-
-
-def _save_stats() -> None:
-    """Persist stats to stats.json so the dashboard process can read them."""
-    try:
-        STATS_FILE.write_text(json.dumps(STATS, indent=2))
-        os.chmod(STATS_FILE, 0o600)
-    except Exception:
-        pass
-
-
-def _stat(account_id: str) -> dict:
-    s = STATS.setdefault(account_id, {"requests": 0, "errors": 0, "last_error": "", "last_used": 0})
-    return s
 
 
 def _next_key() -> tuple[str, str]:
     """Round-robin pick a healthy key; returns (key, account_id)."""
     global RR_INDEX
-    keys = _load_keys()
+    keys = db.list_keys()
     if not keys:
         raise RuntimeError("No Exa API keys configured — add one in the Exa Gateway dashboard tab")
     n = len(keys)
@@ -61,17 +33,10 @@ def _next_key() -> tuple[str, str]:
         idx = RR_INDEX % n
         RR_INDEX += 1
         k = keys[idx]
-        account_id = f"{idx}:{k['id'][:12]}"
-        if STATS.get(account_id, {}).get("errors", 0) >= 5:
-            continue
+        account_id = f"{idx}:{k['key'][:12]}"
         return k["key"], account_id
     RR_INDEX = 0
-    return keys[0]["key"], f"0:{keys[0]['id'][:12]}"
-
-
-def _stat(account_id: str) -> dict:
-    s = STATS.setdefault(account_id, {"requests": 0, "errors": 0, "last_error": "", "last_used": 0})
-    return s
+    return keys[0]["key"], f"0:{keys[0]['key'][:12]}"
 
 
 class ExaGatewayWebSearchProvider(WebSearchProvider):
@@ -86,7 +51,7 @@ class ExaGatewayWebSearchProvider(WebSearchProvider):
         return "Exa Gateway (multi-account)"
 
     def is_available(self) -> bool:
-        return bool(_load_keys())
+        return bool(db.list_keys())
 
     def supports_search(self) -> bool:
         return True
@@ -104,10 +69,7 @@ class ExaGatewayWebSearchProvider(WebSearchProvider):
             import httpx
 
             key, account_id = _next_key()
-            s = _stat(account_id)
-            s["requests"] += 1
-            s["last_used"] = int(time.time())
-            _save_stats()
+            db.bump_request(account_id)
 
             with httpx.Client(timeout=60) as client:
                 resp = client.post(
@@ -116,19 +78,16 @@ class ExaGatewayWebSearchProvider(WebSearchProvider):
                     headers={"x-api-key": key, "Content-Type": "application/json"},
                 )
                 if resp.status_code in (402, 429, 500, 502, 503):
-                    s["errors"] += 1
-                    s["last_error"] = f"HTTP {resp.status_code}"
+                    db.bump_error(account_id, f"HTTP {resp.status_code}")
                     key2, account_id2 = _next_key()
-                    s2 = _stat(account_id2)
-                    s2["requests"] += 1
+                    db.bump_request(account_id2)
                     resp = client.post(
                         f"{EXA_BASE}/search",
                         json={"query": query, "numResults": limit, "contents": {"highlights": True}},
                         headers={"x-api-key": key2, "Content-Type": "application/json"},
                     )
                 else:
-                    s["errors"] = 0
-                    s["last_error"] = ""
+                    db.clear_error(account_id)
                 resp.raise_for_status()
                 data = resp.json()
 
@@ -158,10 +117,7 @@ class ExaGatewayWebSearchProvider(WebSearchProvider):
             import httpx
 
             key, account_id = _next_key()
-            s = _stat(account_id)
-            s["requests"] += 1
-            s["last_used"] = int(time.time())
-            _save_stats()
+            db.bump_request(account_id)
 
             with httpx.Client(timeout=90) as client:
                 resp = client.post(
@@ -170,19 +126,16 @@ class ExaGatewayWebSearchProvider(WebSearchProvider):
                     headers={"x-api-key": key, "Content-Type": "application/json"},
                 )
                 if resp.status_code in (402, 429, 500, 502, 503):
-                    s["errors"] += 1
-                    s["last_error"] = f"HTTP {resp.status_code}"
+                    db.bump_error(account_id, f"HTTP {resp.status_code}")
                     key2, account_id2 = _next_key()
-                    s2 = _stat(account_id2)
-                    s2["requests"] += 1
+                    db.bump_request(account_id2)
                     resp = client.post(
                         f"{EXA_BASE}/contents",
                         json={"urls": urls, "text": {"maxCharacters": kwargs.get("char_limit", 20000)}},
                         headers={"x-api-key": key2, "Content-Type": "application/json"},
                     )
                 else:
-                    s["errors"] = 0
-                    s["last_error"] = ""
+                    db.clear_error(account_id)
                 resp.raise_for_status()
                 data = resp.json()
 

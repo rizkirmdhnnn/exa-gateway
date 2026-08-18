@@ -1,9 +1,8 @@
 # ~/.hermes/plugins/exa-gateway/dashboard/plugin_api.py
 """Exa Gateway dashboard backend — key management + stats.
 
-Keys live in ~/.hermes/plugins/web/exa-gw/keys.json (same file the web
-provider reads). This API only manages keys and reports usage; actual
-search/extract round-robin happens inside the provider.
+Keys and stats live in the shared SQLite db (exa_gateway.db, see db.py),
+read/written by both this dashboard API and the web provider.
 
 Routes:
     GET    /api/plugins/exa-gateway/health      — account count + status
@@ -11,61 +10,29 @@ Routes:
     POST   /api/plugins/exa-gateway/keys        — add an API key
     DELETE /api/plugins/exa-gateway/keys/{id}   — remove an API key
 """
-import json
-import os
-from pathlib import Path
-
 from fastapi import APIRouter, HTTPException
 
+from .. import db
+
 router = APIRouter()
-
-KEYS_FILE = Path(os.path.expanduser("~/.hermes/plugins/exa-gateway/keys.json"))
-STATS_FILE = Path(os.path.expanduser("~/.hermes/plugins/exa-gateway/stats.json"))
-
-
-def _load_keys() -> list[dict]:
-    if not KEYS_FILE.exists():
-        return []
-    try:
-        return json.loads(KEYS_FILE.read_text())
-    except Exception:
-        return []
-
-
-def _load_stats() -> dict:
-    if not STATS_FILE.exists():
-        return {}
-    try:
-        return json.loads(STATS_FILE.read_text())
-    except Exception:
-        return {}
-
-
-def _save_keys(keys: list[dict]) -> None:
-    KEYS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    KEYS_FILE.write_text(json.dumps(keys, indent=2))
-    try:
-        os.chmod(KEYS_FILE, 0o600)
-    except Exception:
-        pass
 
 
 @router.get("/health")
 async def health():
-    keys = _load_keys()
+    keys = db.list_keys()
     return {"accounts": len(keys), "status": "ok" if keys else "no-keys"}
 
 
 @router.get("/accounts")
 async def accounts():
-    keys = _load_keys()
-    stats = _load_stats()
+    keys = db.list_keys()
+    stats = db.get_stats()
     out = {}
     for i, k in enumerate(keys):
-        account_id = f"{i}:{k['id'][:12]}"
+        account_id = f"{i}:{k['key'][:12]}"
         s = stats.get(account_id, {})
         out[account_id] = {
-            "id": k["id"][:12],
+            "id": k["key"][:12],
             "requests": s.get("requests", 0),
             "errors": s.get("errors", 0),
             "last_error": s.get("last_error", ""),
@@ -79,18 +46,14 @@ async def add_key(body: dict):
     key = (body.get("key") or "").strip()
     if not key or len(key) < 10:
         raise HTTPException(status_code=400, detail="Invalid API key")
-    keys = _load_keys()
-    keys.append({"id": key, "key": key})
-    _save_keys(keys)
-    return {"ok": True, "accounts": len(keys)}
+    db.add_key(key)
+    return {"ok": True, "accounts": len(db.list_keys())}
 
 
 @router.delete("/keys/{account_id}")
 async def remove_key(account_id: str):
-    keys = _load_keys()
     idx = int(account_id.split(":")[0])
-    if 0 <= idx < len(keys):
-        keys.pop(idx)
-        _save_keys(keys)
-        return {"ok": True, "accounts": len(keys)}
-    raise HTTPException(status_code=404, detail="Account not found")
+    removed = db.remove_key(idx)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"ok": True, "accounts": len(db.list_keys())}
