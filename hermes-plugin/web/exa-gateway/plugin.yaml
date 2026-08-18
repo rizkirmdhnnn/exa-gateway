@@ -1,0 +1,7 @@
+name: web-exa-gateway
+version: 1.0.0
+description: "Exa multi-account gateway proxy — round-robin across N Exa API keys via a local gateway endpoint."
+author: rizkirmdhn
+kind: backend
+provides_web_providers:
+  - exa-gateway

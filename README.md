@@ -70,17 +70,42 @@ docker run -d --name exa-gateway -p 8123:8123 \
 
 ## Hermes integration
 
-Hermes uses a companion provider plugin (`plugins/web/exa-gateway` in the Hermes home) that calls this gateway over HTTP instead of the Exa SDK, so the gateway actually gets used. Configure:
+Hermes uses a companion provider plugin (`hermes-plugin/web/exa-gateway` in this repo) that calls this gateway over HTTP instead of the Exa SDK, so the gateway actually gets used.
 
-```yaml
-web:
-  backend: exa-gateway
-  extract_backend: exa-gateway
+### Install the Hermes plugin
+
+```bash
+# copy the plugin into your Hermes home
+cp -r hermes-plugin/web/exa-gateway ~/.hermes/plugins/web/exa-gateway
+
+# enable it
+hermes plugins enable web/exa-gateway
+
+# configure
+hermes config set web.backend exa-gateway
+hermes config set web.extract_backend exa-gateway
 ```
 
 ```bash
 # in ~/.hermes/.env
 EXA_GATEWAY_URL=http://<gateway-host>:8123
+```
+
+Restart the gateway (or start a new session) for the provider to take effect.
+
+### Repo layout
+
+```
+exa-gateway/
+├── main.py                    # FastAPI gateway server (round-robin)
+├── Dockerfile
+├── requirements.txt
+└── hermes-plugin/
+    └── web/
+        └── exa-gateway/       # Hermes WebSearchProvider plugin
+            ├── plugin.yaml
+            ├── provider.py
+            └── __init__.py
 ```
 
 ## Notes
