@@ -19,8 +19,8 @@ from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
 
-KEYS_FILE = Path(os.path.expanduser("~/.hermes/plugins/web/exa-gw/keys.json"))
-STATS_FILE = Path(os.path.expanduser("~/.hermes/plugins/web/exa-gw/stats.json"))
+KEYS_FILE = Path(os.path.expanduser("~/.hermes/plugins/exa-gateway/keys.json"))
+STATS_FILE = Path(os.path.expanduser("~/.hermes/plugins/exa-gateway/stats.json"))
 
 
 def _load_keys() -> list[dict]:

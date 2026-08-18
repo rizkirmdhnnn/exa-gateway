@@ -70,61 +70,54 @@ docker run -d --name exa-gateway -p 8123:8123 \
 
 ## All-in-one Hermes plugin (no container needed)
 
-The repo ships **two Hermes plugins** — together they make the gateway
-fully in-process: no separate container or server required.
+**One plugin** — `hermes-plugin/exa-gateway` — provides both the web
+search/extract provider AND the dashboard tab. No separate container or
+server required.
 
-### 1. Web provider — `hermes-plugin/web/exa-gw`
+```
+~/.hermes/plugins/exa-gateway/
+├── plugin.yaml          # kind: backend + provides_web_providers
+├── __init__.py          # register() → register_web_search_provider
+├── provider.py          # WebSearchProvider (in-process round-robin)
+├── keys.json            # API keys (created at runtime, mode 600)
+├── stats.json           # usage stats (created at runtime)
+└── dashboard/           # "Exa Gateway" tab (keys + stats UI)
+    ├── manifest.json
+    ├── plugin_api.py
+    └── dist/index.js
+```
 
-Round-robins across keys **inside the Hermes gateway process** and calls
-Exa directly. Keys are read from `keys.json` next to the provider.
+### Install
 
 ```bash
-cp -r hermes-plugin/web/exa-gw ~/.hermes/plugins/web/exa-gw
-hermes plugins enable web/exa-gw
+# copy the single plugin into your Hermes home
+cp -r hermes-plugin/exa-gateway ~/.hermes/plugins/exa-gateway
+
+# enable it
+hermes plugins enable exa-gateway
+
+# point web search/extract at it
 hermes config set web.backend exa-gateway
 hermes config set web.extract_backend exa-gateway
+
+# restart gateway (new session) and dashboard
 ```
 
-### 2. Dashboard tab — `hermes-plugin/exa-gateway`
+### Usage
 
-Adds an **"Exa Gateway" tab** to the Hermes dashboard: paste API keys,
-remove them, and watch per-account usage (requests / errors). Keys and
-stats are shared with the provider via `keys.json` + `stats.json`.
+1. Open the Hermes dashboard → **Exa Gateway** tab.
+2. Paste one or more Exa API keys → they land in `keys.json`.
+3. Search/extract now round-robins across the keys automatically.
+4. The tab shows per-account requests / errors live.
 
-```bash
-cp -r hermes-plugin/exa-gateway ~/.hermes/plugins/exa-gateway
-hermes plugins enable exa-gateway
-# restart dashboard; tab appears under Plugins
-```
+Keys and stats are shared between provider and dashboard via
+`keys.json` + `stats.json` (same plugin directory).
 
-### Key files
+### Standalone server (optional)
 
-| File | Written by | Read by |
-|---|---|---|
-| `~/.hermes/plugins/web/exa-gw/keys.json` | dashboard (add/remove key) | provider (round-robin) |
-| `~/.hermes/plugins/web/exa-gw/stats.json` | provider (per request) | dashboard (display) |
-
-### Repo layout
-
-```
-exa-gateway/
-├── main.py                    # (standalone server — optional if you want a
-│                              #  container instead of the in-process plugin)
-├── Dockerfile
-├── requirements.txt
-└── hermes-plugin/
-    ├── web/
-    │   └── exa-gw/            # WebSearchProvider (in-process round-robin)
-    │       ├── plugin.yaml
-    │       ├── provider.py
-    │       └── __init__.py
-    └── exa-gateway/           # Dashboard tab (keys + stats)
-        ├── plugin.yaml
-        └── dashboard/
-            ├── manifest.json
-            ├── plugin_api.py
-            └── dist/index.js
-```
+`main.py` + `Dockerfile` are kept as an optional container alternative —
+run the round-robin as its own service and point `EXA_GATEWAY_URL` at it.
+Most users will prefer the in-process plugin above.
 
 ## Notes
 
