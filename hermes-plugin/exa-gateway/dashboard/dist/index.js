@@ -130,7 +130,7 @@
                     React.createElement("div", { style: { color: "var(--color-muted-foreground)", fontSize: "12px" } },
                       `${fmt(v.requests || 0)} req · ${v.errors || 0} errors` + (v.last_error ? ` · ${v.last_error}` : "")),
                   ),
-                  React.createElement(Button, { onClick: () => removeKey(accountId), style: { background: "#ef4444", color: "#fff", fontSize: "12px", padding: "4px 10px" } }, "Remove"),
+                  React.createElement(Button, { onClick: () => removeKey(accountId), variant: "destructive", size: "sm" }, "Remove"),
                 )
               ),
         ),
