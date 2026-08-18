@@ -3,7 +3,7 @@
   "label": "Exa Gateway",
   "description": "Multi-account Exa search/extract with round-robin — add keys, watch stats",
   "icon": "Globe",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "tab": {
     "path": "/exa-gateway",
     "position": "after:9router"
