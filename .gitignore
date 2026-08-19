@@ -1,0 +1,13 @@
+exa_gateway.db
+exa_gateway.db-wal
+exa_gateway.db-shm
+__pycache__/
+*.py[cod]
+.env
+.venv/
+node_modules/
+*.log
+dist/*.map
+coverage/
+.pytest_cache/
+.mypy_cache/
