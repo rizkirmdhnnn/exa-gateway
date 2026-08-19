@@ -1,9 +1,9 @@
 {
   "name": "exa-gateway",
   "label": "Exa Gateway",
-  "description": "Multi-account Exa search/extract with round-robin — add keys, watch stats",
+  "description": "Multi-account Exa dashboard with key health, events, retention, and redacted usage export",
   "icon": "Globe",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "tab": {
     "path": "/exa-gateway",
     "position": "after:9router"

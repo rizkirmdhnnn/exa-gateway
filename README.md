@@ -10,6 +10,7 @@ A self-hosted Hermes plugin for Exa web search and page extraction with multiple
 - Retry with another key after `402`, `429`, or transient `5xx` responses.
 - Exa search and page contents/extraction.
 - Hermes dashboard tab for key management and usage statistics.
+- Dashboard v3 includes masked account health, enable/disable/test controls, events, hourly aggregates, retention, safe settings, and redacted export.
 - Local SQLite storage.
 - Stable account IDs that survive key reordering or deletion.
 - Compatible reading of statistics from older plugin versions.
@@ -62,6 +63,8 @@ The default database path is:
 Set `EXA_GATEWAY_DB_PATH` to use another local path. The plugin stores API keys in SQLite. The database and SQLite WAL sidecar files are set to mode `0600` after initialization.
 
 The dashboard API relies on Hermes dashboard authentication. Do not run Hermes with an unauthenticated or insecure dashboard on a network that other people can reach.
+
+Dashboard event records contain operation, status, HTTP status, latency, and stable key ID only. Queries, URLs, headers, response bodies, and full API keys are not stored or exported. Events default to 30 days and 10,000 rows; retention can be changed within the safe dashboard bounds. Disabled keys remain stored but are skipped by provider round-robin selection.
 
 If an API key was ever committed to Git, rotate it. Removing it from the latest commit is not enough because Git history can retain secrets.
 

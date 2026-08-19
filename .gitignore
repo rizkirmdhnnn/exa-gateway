@@ -11,3 +11,5 @@ dist/*.map
 coverage/
 .pytest_cache/
 .mypy_cache/
+
+.hermes/
