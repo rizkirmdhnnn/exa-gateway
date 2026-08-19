@@ -8,6 +8,6 @@
     "path": "/exa-gateway",
     "position": "after:9router"
   },
-  "entry": "dist/index.js",
+  "entry": "dist/index.v3.js",
   "api": "plugin_api.py"
 }
