@@ -102,15 +102,6 @@ Tests use a temporary database and do not touch a production database.
 
 Use this plugin only with Exa accounts and API keys you are authorized to operate. Follow Exa's terms, rate limits, and API policies.
 
-## Release checklist
-
-- [ ] `exa_gateway.db` is absent from the repository.
-- [ ] No API key, token, private email, internal IP, or local path is staged.
-- [ ] Tests and Python compilation pass.
-- [ ] Installation is tested in a clean Hermes profile.
-- [ ] Hermes compatibility is checked against the target release.
-- [ ] The staged diff is reviewed before publishing.
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
