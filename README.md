@@ -73,8 +73,7 @@ See [SECURITY.md](SECURITY.md) for vulnerability reports and secret-handling rul
 - `provider.py`: round-robin search and extraction provider.
 - `db.py`: SQLite storage, permissions, and usage counters.
 - `dashboard/plugin_api.py`: dashboard API routes.
-- `dashboard/src/dashboard.js`: maintainable dashboard source.
-- `dashboard/dist/index.js`: runtime bundle loaded by Hermes.
+- `dashboard/dist/index.js`: standalone dashboard bundle loaded by Hermes.
 - `dashboard/manifest.json`: dashboard tab metadata.
 - `tests/`: local unit tests.
 
