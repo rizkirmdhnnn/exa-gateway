@@ -3,11 +3,11 @@
   "label": "Exa Gateway",
   "description": "Multi-account Exa dashboard with key health, events, retention, and redacted usage export",
   "icon": "Globe",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "tab": {
     "path": "/exa-gateway",
     "position": "after:9router"
   },
-  "entry": "dist/index.v5.js",
+  "entry": "dist/index.v6.js",
   "api": "plugin_api.py"
 }
