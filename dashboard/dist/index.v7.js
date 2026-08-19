@@ -14,15 +14,32 @@
   const fmt = (value) => Number(value || 0).toLocaleString();
   const statusColor = (status) => status === "healthy" || status === "success" ? "#16a34a" : status === "rate_limited" ? "#d97706" : status === "error" || status === "upstream_error" ? "#dc2626" : "var(--color-muted-foreground)";
   function ActivityChart({ data }) {
-    const values = data || [];
+    const values = (data || []).slice(-24);
     const max = Math.max(1, ...values.map((v) => Number(v.requests || 0)));
-    return React.createElement("div", { style: { ...card, minHeight: 170 } },
-      React.createElement("h2", null, "Activity (hourly)"),
-      values.length === 0 ? React.createElement("p", null, "No events in this period.") :
-        React.createElement("div", { style: { display: "flex", alignItems: "end", gap: 5, height: 105, overflowX: "auto", paddingTop: 8 } }, values.map((v) =>
-          React.createElement("div", { key: v.hour, title: `${v.requests} requests · ${v.errors} errors`, style: { height: `${Math.max(4, (Number(v.requests || 0) / max) * 100)}px`, width: 18, minWidth: 18, backgroundColor: v.errors ? "#dc2626" : "#2563eb", borderRadius: "4px 4px 0 0" } })
-        )),
-      values.length > 0 && React.createElement("small", null, "Blue: requests · Red: at least one error")
+    const fmtHour = (hour) => {
+      const date = new Date(Number(hour) * 1000);
+      return isNaN(date.getTime()) ? "" : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    };
+    return React.createElement("div", { style: { ...card, minHeight: 190 } },
+      React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+        React.createElement("h2", null, "Activity"),
+        React.createElement("div", { style: { display: "flex", gap: 12, fontSize: 12, color: "var(--color-muted-foreground)" } },
+          React.createElement("span", null, React.createElement("span", { style: { display: "inline-block", width: 10, height: 10, borderRadius: 3, background: "linear-gradient(180deg,#60a5fa,#2563eb)", marginRight: 5 } }), "requests"),
+          React.createElement("span", null, React.createElement("span", { style: { display: "inline-block", width: 10, height: 10, borderRadius: 3, background: "linear-gradient(180deg,#f87171,#dc2626)", marginRight: 5 } }), "errors"))),
+      values.length === 0 ? React.createElement("p", { style: { color: "var(--color-muted-foreground)", padding: "30px 0", textAlign: "center" } }, "No events in this period.") :
+        React.createElement("div", null,
+          React.createElement("div", { style: { position: "relative", height: 130, marginTop: 10, borderBottom: "1px solid var(--color-border)" } },
+            [25, 50, 75, 100].map((pct) => React.createElement("div", { key: pct, style: { position: "absolute", left: 0, right: 0, bottom: `${pct}%`, borderTop: "1px dashed var(--color-border)", opacity: 0.5 } })),
+            React.createElement("div", { style: { position: "absolute", inset: 0, display: "flex", alignItems: "end", gap: 6, padding: "0 4px" } }, values.map((v) => {
+              const count = Number(v.requests || 0);
+              const hasError = Number(v.errors || 0) > 0;
+              const height = Math.max(4, (count / max) * 130);
+              return React.createElement("div", { key: v.hour, title: `${fmtHour(v.hour)} · ${count} requests${hasError ? ` · ${v.errors} errors` : ""}`, style: { flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", height: 130, minWidth: 0 } },
+                count > 0 && React.createElement("span", { style: { fontSize: 10, textAlign: "center", color: "var(--color-muted-foreground)", marginBottom: 2 } }, count > 99 ? "99+" : count),
+                React.createElement("div", { style: { height, background: hasError ? "linear-gradient(180deg,#f87171,#dc2626)" : "linear-gradient(180deg,#60a5fa,#2563eb)", borderRadius: "5px 5px 2px 2px", boxShadow: hasError ? "0 0 8px rgba(220,38,38,.45)" : "0 0 8px rgba(37,99,235,.25)", transition: "height .2s" } }));
+            }))),
+          React.createElement("div", { style: { display: "flex", gap: 6, marginTop: 6, padding: "0 4px" } }, values.map((v) => React.createElement("span", { key: v.hour, style: { flex: 1, minWidth: 0, fontSize: 9, textAlign: "center", color: "var(--color-muted-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, fmtHour(v.hour))))),
+      values.length > 0 && React.createElement("p", { style: { marginTop: 10, fontSize: 12, color: "var(--color-muted-foreground)" } }, "Last 24 hours · hover a bar for details")
     );
   }
   function ExaGatewayPage() {

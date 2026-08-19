@@ -73,6 +73,10 @@ async def remove_key(account_id: str):
 async def prune():
     n=_db.prune_events(int(_db.get_setting("retention_days","30")),int(_db.get_setting("max_events","10000"))); return {"ok":True,"removed":n}
 
+@router.post("/events/clear")
+async def clear_events():
+    n=_db.clear_events(); return {"ok":True,"removed":n}
+
 @router.get("/export")
 async def export(days: int = Query(30, ge=1, le=365)):
     return {"days":days,"accounts":_db.account_export(int(time.time())-days*86400)}

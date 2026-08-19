@@ -188,6 +188,12 @@ def prune_events(retention_days: int, max_events: int) -> int:
         cur=con.execute("DELETE FROM events WHERE created_at < ? OR id NOT IN (SELECT id FROM events ORDER BY id DESC LIMIT ?)",(int(time.time())-retention_days*86400,max_events)); con.commit(); return cur.rowcount
     finally: con.close()
 
+def clear_events() -> int:
+    init_db(); con=_connect()
+    try:
+        cur=con.execute("DELETE FROM events"); con.commit(); return cur.rowcount
+    finally: con.close()
+
 def account_export(since: int) -> list[dict]:
     summaries=list_key_summaries(); return [{"account_id":f"key:{r['id']}","requests":r["requests"],"errors":r["errors"],"last_used":r["last_used"],"status":r["last_status"]} for r in summaries]
 
