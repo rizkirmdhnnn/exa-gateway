@@ -20,7 +20,17 @@ async def health():
 
 @router.get("/summary")
 async def summary(days: int = Query(30, ge=1, le=365)):
-    now=int(time.time()); s=_db.event_summary(now-days*86400,now); keys=_db.list_key_summaries(); s.update({"total_accounts":len(keys),"healthy_accounts":sum(k["last_status"]=="healthy" for k in keys),"disabled_accounts":sum(not k["enabled"] for k in keys)}); return s
+    now=int(time.time()); s=_db.event_summary(now-days*86400,now); keys=_db.list_key_summaries()
+    # Existing installations have request counters from before event tracking.
+    # Keep those counters visible until new events replace the history.
+    if not s["requests"]:
+        s["requests"] = sum(k["requests"] for k in keys)
+        s["errors"] = sum(k["errors"] for k in keys)
+        s["successful_requests"] = max(0, s["requests"] - s["errors"])
+        s["success_rate"] = round(s["successful_requests"] * 100 / s["requests"], 2) if s["requests"] else 0.0
+        s["last_activity"] = max((k["last_used"] for k in keys), default=0)
+    s.update({"total_accounts":len(keys),"healthy_accounts":sum(k["last_status"]=="healthy" for k in keys),"disabled_accounts":sum(not k["enabled"] for k in keys)})
+    return s
 
 @router.get("/accounts")
 async def accounts():
