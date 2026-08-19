@@ -10,7 +10,7 @@ A self-hosted Hermes plugin for Exa web search and page extraction with multiple
 - Retry with another key after `402`, `429`, or transient `5xx` responses.
 - Exa search and page contents/extraction.
 - Hermes dashboard tab for key management and usage statistics.
-- Dashboard v3 includes masked account health, enable/disable/test controls, events, hourly aggregates, retention, safe settings, and redacted export.
+- Dashboard includes masked account health, enable/disable/test controls, parallel test-all with live progress, events, hourly activity, retention, safe settings, and event clearing.
 - Local SQLite storage.
 - Stable account IDs that survive key reordering or deletion.
 - Compatible reading of statistics from older plugin versions.
@@ -39,8 +39,10 @@ The plugin creates its database on first use. Never copy a production `exa_gatew
 1. Open the Hermes dashboard.
 2. Open the **Exa Gateway** tab.
 3. Paste an Exa API key.
-4. Click **Add key**.
+4. Click **Add account** and paste the key in the popup.
 5. Set Hermes web search to `exa-gateway` when this provider should handle search and extraction.
+
+On the Accounts tab, **Test all accounts** checks enabled accounts in parallel and shows live progress. The Events tab supports pruning old events and clearing all event history.
 
 The plugin does not read an API key from the repository or from a checked-in configuration file. Keys are stored locally in SQLite.
 
@@ -89,6 +91,9 @@ Run locally without network access:
 ```bash
 python3 -m unittest discover -s tests -v
 python3 -m py_compile db.py provider.py dashboard/plugin_api.py
+
+# For API route tests, use the Hermes environment where FastAPI is installed:
+~/.hermes/hermes-agent/venv/bin/python -m unittest discover -s tests -v
 ```
 
 Tests use a temporary database and do not touch a production database.

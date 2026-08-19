@@ -196,11 +196,3 @@ def clear_events() -> int:
 
 def account_export(since: int) -> list[dict]:
     summaries=list_key_summaries(); return [{"account_id":f"key:{r['id']}","requests":r["requests"],"errors":r["errors"],"last_used":r["last_used"],"status":r["last_status"]} for r in summaries]
-
-def _ensure_for_tests(): init_db()
-
-auto_init = _ensure_for_tests
-init_db()
-
-# Backward-compatible alias used by older integrations.
-SCHEMA = _SCHEMA
